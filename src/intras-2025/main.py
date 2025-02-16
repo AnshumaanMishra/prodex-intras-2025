@@ -2,10 +2,10 @@ from time import sleep
 from ultralytics import YOLO
 import cv2
 import math 
-import torch
+# import torch
 import numpy as np
 
-torch.cuda.set_device(0)
+# torch.cuda.set_device(0)
 # start webcam
 # cap = cv2.VideoCapture("http://192.168.4.193:4747/video")
 cap = cv2.VideoCapture("/dev/video0")
