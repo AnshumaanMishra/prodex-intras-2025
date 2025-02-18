@@ -25,7 +25,7 @@ classNames = ["person"]
 coordinateSet = np.array([0, 0, 0, 0])
 personLocation = np.array([0, 0])
 lightLocation = np.array([30, 30])
-personWidth = np.array([0, 0])
+personWidth = np.array([0, 0, 0])
 movement = np.array([0, 0])
 rect = np.array([0, 0, 0, 0])
 maxConf = 0
@@ -68,14 +68,14 @@ def detectRedDot():
 
 
 # Helper Functions
+
 def getCoordinatesAndArea(box, startFactor, endFactor) -> tuple[int, int, int, int]:
     x1, y1, x2, y2 = box.xyxy[0]
-    cset = np.array([[int(x1 * startFactor), int(y1 * startFactor)], [int(x2 * endFactor), int(y2 * endFactor)]])
-    return cset, abs(x2 - x1) * abs(y2 - y1)
+    return np.array([[int(x1 * startFactor), int(y1 * startFactor)], [int(x2 * endFactor), int(y2 * endFactor)]]), abs(x2 - x1) * abs(y2 - y1)
 
-def personLocationAndWidth(coordinateSet):
-    personLocation = (coordinateSet[0] + coordinateSet[1]) // 2
-    personWidth = abs(coordinateSet[1] - coordinateSet[0])
+def personLocationAndWidth(x1, x2, y1, y2):
+    personLocation = np.array(((x1 + x2) // 2, (y1 + y2) // 2))
+    personWidth = np.array((abs(x2 - x1), abs(y2 - y1), confidence))
     return personLocation, personWidth
 
 def drawShapes(img, coordinateSet):
@@ -88,37 +88,52 @@ def drawShapes(img, coordinateSet):
     thickness = 2
     cv2.putText(img, classNames[cls] + str(f"{personLocation, movement}"), org, font, fontScale, color, thickness)
 
-
+    
 # Main Loop
 while True:
+    # sleep(0.2)
     success, img = cap.read()
     results = model(img, stream=True)
+    # coordinates
+    # cv2.circle(img, lightLocation, radius=10, color=(0, 0, 255), thickness=-1)
     for r in results:
         boxes = r.boxes
         maxArea = 0
+        # box = boxes[0]
+        # print(personLocation, lightLocation, movement, maxArea)
         for i in range(len(boxes) - 1, -1, -1):
             box = boxes[i]
+            # bounding box
             coordinateSet, currentArea = getCoordinatesAndArea(box, 1.5, 0.9)
             if(currentArea < maxArea):
                 continue
             else:
                 maxArea = currentArea
+                # confidence
                 confidence = math.ceil((box.conf[0]*100))/100
 
                 print("Confidence --->",confidence)
 
+                # class name
                 cls = int(box.cls[0])
                 lastcls = cls
                 if(cls == 0):
-                    personLocation, personWidth = personLocationAndWidth(coordinateSet)
+                    personLocation, personWidth = personLocationAndWidth()
+            
+            # print(tuple(coordinateSet), personLocation, lightLocation, movement, maxArea)
         
         cls = lastcls
         if(cls == 0):
             movement = (personLocation - lightLocation)
+            # x = detectRedDot()
+            # print(x)
+            # lightLocation = x['center'] if x is not None else (30, 30)
+            # lightLocation = (personLocation + lightLocation) // 2
             print(lightLocation, personLocation)
             lightLocation += movement // 25
             print("Class name -->", classNames[cls])
             drawShapes(img, coordinateSet)
+            # object details
             
 
     cv2.imshow('Webcam', img)
