@@ -1,7 +1,9 @@
-import time
+# import time
+import pygame
 import cv2  # type: ignore
 import numpy as np # type: ignore
 
+clock1 = pygame.time.Clock()
 def calculateError(setpoint: np.ndarray[int, int], current=np.array([0, 0])) -> float:
     # error = (setpoint - current) ** 2
     # return sum(error) ** 0.5
@@ -37,25 +39,29 @@ sum = 0
 max = 0
 min = 1000000000
 
-t1 = time.time()
+# t1 = time.time()
 # time.sleep(2)
 for i in range(100):
+    clock1.tick(30)
     count += 1
     success, img = cap.read()
     cv2.imshow('Webcam', img)
-    print((int(current[0]), int(current[1])))
+    # print((int(current[0]), int(current[1])))
     # cv2.circle(img, center=(int(current[0]), int(current[1])), radius=10, color=(0, 0, 255), thickness=-1)
     cv2.circle(img, center=(200, 200), radius=10, color=(0, 0, 255), thickness=-1)
-    t2 = time.time()
-    print(t1, t2, (t2 - t1))
+    # t2 = time.time()
+    # print(t1, t2, (t2 - t1))
     error = calculateError(current=current, setpoint=setpoint)
-    # time.sleep(1000/30)
-    fps = 1 / (t2 - t1)
-    t1 = t2
-    properror = calculateProportionality(error, 1 * 1e-10)
-    interror, currentInt = calculateIntegral(error, interror, fps, 115)
-    differror = calculateDifferential(error, preverror, fps, 0.95 * 1e-3)
-    print(f"Error: {error}, prop: {properror}, int: {interror, currentInt}, diff: {differror}")
+    # fps = 1 / (t2 - t1)
+    fps = 30
+    # t1 = t2
+    properror = calculateProportionality(error, 15e-3)
+    # properror = calculateProportionality(error, 1 * 1e-10)
+    interror, currentInt = calculateIntegral(error, interror, fps, 42)
+    # interror, currentInt = calculateIntegral(error, interror, fps, 115)
+    # differror = calculateDifferential(error, preverror, fps, 0.95 * 1e-3)
+    differror = calculateDifferential(error, preverror, fps, 15e-3)
+    # print(f"Error: {error}, prop: {properror}, int: {interror, currentInt}, diff: {differror}")
     preverror = error
 
     current += np.int64(properror + currentInt + differror)
@@ -65,11 +71,11 @@ for i in range(100):
 
     if(max < current[0]):
         max = current[0]
-    print(f"Average = {sum / count}, min = {min}, max = {max}")
     # current[1] += int(properror + interror + differror)
 
     # if cv2.waitKey(1) == ord('q'):
     #     break
 
+print(f"Average = {sum / count}, min = {min}, max = {max}")
 cap.release()
 cv2.destroyAllWindows()
