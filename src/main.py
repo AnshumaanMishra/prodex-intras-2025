@@ -1,7 +1,7 @@
-from time import sleep
 from ultralytics import YOLO
 import cv2
 import math 
+import pygame
 import numpy as np
 
 # Uncomment this line to use the GPU for YOLO
@@ -26,6 +26,8 @@ coordinateSet = np.array([0, 0, 0, 0])
 personLocation = np.array([0, 0])
 lightLocation = np.array([30, 30])
 personWidth = np.array([0, 0])
+preverror = 0
+interror = 0
 movement = np.array([0, 0])
 rect = np.array([0, 0, 0, 0])
 maxConf = 0
@@ -88,10 +90,31 @@ def drawShapes(img, coordinateSet):
     thickness = 2
     cv2.putText(img, classNames[cls] + str(f"{personLocation, movement}"), org, font, fontScale, color, thickness)
 
+def calculateError(setpoint: np.ndarray[int, int], current=np.array([0, 0])) -> float:
+    # error = (setpoint - current) ** 2
+    # return sum(error) ** 0.5
+    return setpoint - current
 
+def calculateProportionality(error, proportionality) -> float:
+    return proportionality * error
+
+def calculateIntegral(error, currentIntegralError, frameRate, proportionality) -> tuple[float, float]:
+
+    integral = currentIntegralError + error * (1 / frameRate)
+    return (integral, proportionality * integral)
+
+def calculateDifferential(error, prevError, frameRate, proportionality) -> float:
+    time = 1 / frameRate
+    differential = (error - prevError) / time
+    return differential * proportionality
+
+
+
+clock1 = pygame.time.Clock()
 # Main Loop
 while True:
     success, img = cap.read()
+    clock1.tick(30)
     results = model(img, stream=True)
     for r in results:
         boxes = r.boxes
@@ -114,9 +137,19 @@ while True:
         
         cls = lastcls
         if(cls == 0):
-            movement = (personLocation - lightLocation)
+            error = calculateError(current=lightLocation, setpoint=personLocation)
+            fps = 30
+            properror = calculateProportionality(error, 15e-3)
+            interror, currentInt = calculateIntegral(error, interror, fps, 42)
+            differror = calculateDifferential(error, preverror, fps, 15e-3)
+            preverror = error
+            # print(lightLocation)
+            lightLocation += np.int64(properror + currentInt + differror)
+
+
+            # movement = (personLocation - lightLocation)
             print(lightLocation, personLocation)
-            lightLocation += movement // 25
+            # lightLocation += movement // 25
             print("Class name -->", classNames[cls])
             drawShapes(img, coordinateSet)
             
