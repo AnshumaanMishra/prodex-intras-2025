@@ -41,13 +41,13 @@ min = 1000000000
 
 # t1 = time.time()
 # time.sleep(2)
-for i in range(100):
+while(1):
     clock1.tick(30)
     count += 1
     success, img = cap.read()
     cv2.imshow('Webcam', img)
     # print((int(current[0]), int(current[1])))
-    # cv2.circle(img, center=(int(current[0]), int(current[1])), radius=10, color=(0, 0, 255), thickness=-1)
+    cv2.circle(img, center=(int(current[0]), int(current[1])), radius=10, color=(0, 0, 255), thickness=-1)
     cv2.circle(img, center=(200, 200), radius=10, color=(0, 0, 255), thickness=-1)
     # t2 = time.time()
     # print(t1, t2, (t2 - t1))
@@ -73,8 +73,8 @@ for i in range(100):
         max = current[0]
     # current[1] += int(properror + interror + differror)
 
-    # if cv2.waitKey(1) == ord('q'):
-    #     break
+    if cv2.waitKey(1) == ord('q'):
+        break
 
 print(f"Average = {sum / count}, min = {min}, max = {max}")
 cap.release()

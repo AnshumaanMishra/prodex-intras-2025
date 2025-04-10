@@ -11,7 +11,8 @@ torch.cuda.set_device(0)
 cap = cv2.VideoCapture(0)
 '''
 
-cap = cv2.VideoCapture(0)
+# cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture("/dev/video1")
 cap.set(3, 640)
 cap.set(4, 480)
 
@@ -58,15 +59,16 @@ def detectRedDot():
 	# We only need to detect one circle here, since there will only be one reference object
     if circles is not None:
         circles = np.round(circles[0, :]).astype("int")
-        org = [rect[0], rect[1]]
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        fontScale = 1
-        color = (255, 0, 0)
-        thickness = 2
-        cv2.putText(output_frame, str(f"{np.array([circles[0, 0], circles[0, 1]])}"), org, font, fontScale, color, thickness)
-        cv2.circle(output_frame, center=(circles[0, 0], circles[0, 1]), radius=circles[0, 2], color=(0, 255, 0), thickness=2)
-        return {"center": np.array([circles[0, 0], circles[0, 1]]), "radius": circles[0, 2]}
-    return None
+        print("Circles, ", circles)
+        # org = [rect[0], rect[1]]
+        # font = cv2.FONT_HERSHEY_SIMPLEX
+        # fontScale = 1
+        # color = (255, 0, 0)
+        # thickness = 2
+        # cv2.circle(output_frame, center=(circles[0, 0], circles[0, 1]), radius=circles[0, 2], color=(0, 255, 0), thickness=2)
+        # cv2.putText(output_frame, str(f"{np.array([circles[0, 0], circles[0, 1]])}"), org, font, fontScale, color, thickness)
+        return circles
+    return np.array([[0, 0, 0]])
 
 
 # Helper Functions
@@ -80,15 +82,18 @@ def personLocationAndWidth(coordinateSet):
     personWidth = abs(coordinateSet[1] - coordinateSet[0])
     return personLocation, personWidth
 
-def drawShapes(img, coordinateSet):
+def drawShapes(img, coordinateSet, circles):
     cv2.rectangle(img, coordinateSet[0], coordinateSet[1], (255, 0, 255), 3)
-    cv2.circle(img, lightLocation, radius=10, color=(0, 0, 255), thickness=-1)
+    # cv2.circle(img, lightLocation, radius=10, color=(0, 0, 255), thickness=-1)
     org = [coordinateSet[0][0], coordinateSet[0][1]]
+    org2 = [circles[0, 0], circles[0, 1]]
     font = cv2.FONT_HERSHEY_SIMPLEX
     fontScale = 1
     color = (255, 0, 0)
     thickness = 2
-    cv2.putText(img, classNames[cls] + str(f"{personLocation, movement}"), org, font, fontScale, color, thickness)
+    cv2.putText(img, str(f"{personLocation}"), org, font, fontScale, color, thickness)
+    cv2.circle(img, center=(circles[0, 0], circles[0, 1]), radius=circles[0, 2], color=(0, 255, 0), thickness=2)
+    cv2.putText(img, str(f"{np.array([circles[0, 0], circles[0, 1]])}"), org2, font, fontScale, color, thickness)
 
 def calculateError(setpoint: np.ndarray[int, int], current=np.array([0, 0])) -> float:
     # error = (setpoint - current) ** 2
@@ -110,12 +115,15 @@ def calculateDifferential(error, prevError, frameRate, proportionality) -> float
 
 
 
+fps = 30
 clock1 = pygame.time.Clock()
 # Main Loop
 while True:
     success, img = cap.read()
-    clock1.tick(30)
+    clock1.tick(fps)
     results = model(img, stream=True)
+    lightLocation1 = detectRedDot()
+    print("ll1, ", lightLocation1)
     for r in results:
         boxes = r.boxes
         maxArea = 0
@@ -137,21 +145,24 @@ while True:
         
         cls = lastcls
         if(cls == 0):
-            error = calculateError(current=lightLocation, setpoint=personLocation)
-            fps = 30
-            properror = calculateProportionality(error, 15e-3)
-            interror, currentInt = calculateIntegral(error, interror, fps, 42)
-            differror = calculateDifferential(error, preverror, fps, 15e-3)
-            preverror = error
-            # print(lightLocation)
-            lightLocation += np.int64(properror + currentInt + differror)
-
+            if(sum(sum(lightLocation1)) != 0):
+                lightLocation = np.array([lightLocation1[0, 0], lightLocation1[0, 1]])
+                error = calculateError(current=lightLocation, setpoint=personLocation)
+                print(lightLocation, personLocation)
+                properror = calculateProportionality(error, 15e-2)
+                interror, currentInt = calculateIntegral(error, interror, fps, 42e-3)
+                differror = calculateDifferential(error, preverror, fps, 15e-1)
+                preverror = error
+                print(error, properror, interror, currentInt, differror)
+                # print(lightLocation)
+                lightLocation += np.int64(properror + currentInt + differror)
+                print("movement= ", np.int64(properror + currentInt + differror))
 
             # movement = (personLocation - lightLocation)
             print(lightLocation, personLocation)
             # lightLocation += movement // 25
             print("Class name -->", classNames[cls])
-            drawShapes(img, coordinateSet)
+            drawShapes(img, coordinateSet, lightLocation1)
             
 
     cv2.imshow('Webcam', img)

@@ -1,13 +1,14 @@
 import numpy as np
 import cv2
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture("/dev/video1")
 
 ret, captured_frame = cap.read()
 output_frame = captured_frame.copy()
 
 cv2.circle(captured_frame, (30, 30), radius=10, color=(0, 0, 255), thickness=10)
 
+rect = np.array([0, 0, 0, 0])
 
 while(True):
     # Capture frame-by-frame
@@ -33,7 +34,15 @@ while(True):
 	# We only need to detect one circle here, since there will only be one reference object
     if circles is not None:
         circles = np.round(circles[0, :]).astype("int")
+        print(circles)
+        org = [rect[0], rect[1]]
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        fontScale = 1
+        color = (255, 0, 0)
+        thickness = 2
+        cv2.putText(output_frame, str(f"{np.array([circles[0, 0], circles[0, 1]])}"), org, font, fontScale, color, thickness)
         cv2.circle(output_frame, center=(circles[0, 0], circles[0, 1]), radius=circles[0, 2], color=(0, 255, 0), thickness=2)
+        # return {"center": np.array([circles[0, 0], circles[0, 1]]), "radius": circles[0, 2]}
 
     # Display the resulting frame, quit with q
     cv2.imshow('frame', output_frame)
