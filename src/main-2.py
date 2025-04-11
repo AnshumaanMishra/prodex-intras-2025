@@ -4,17 +4,6 @@ import math
 import pygame
 import numpy as np
 
-import RPi.GPIO as GPIO
-import time
-
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(11, GPIO.OUT)
-
-servo1 = GPIO.PWM(11, 50)  # 50Hz for standard servos
-servo1.start(0)
-
-# Example: rotate to 10°
-
 # Uncomment this line to use the GPU for YOLO
 '''
 import torch
@@ -23,7 +12,7 @@ cap = cv2.VideoCapture(0)
 '''
 
 # cap = cv2.VideoCapture(0)
-cap = cv2.VideoCapture("/dev/video2")
+cap = cv2.VideoCapture("/dev/video1")
 cap.set(3, 640)
 cap.set(4, 480)
 
@@ -81,19 +70,8 @@ def detectRedDot():
         return circles
     return np.array([[0, 0, 0]])
 
-def SetAngle(angle):
-    duty = angle / 18 + 2  # maps 0-180° to ~2-12% duty
-    minT = 0.37
-    if(angle < 0):
-        duty = 12
-        time1 = (minT / 90) * -angle
-    else:
-        duty = 2
-        time1 = (minT / 90) * angle
-    servo1.ChangeDutyCycle(duty)
-    time.sleep(time1)
-    servo1.ChangeDutyCycle(0)  # optional: stop signal to reduce jitter
 
+# Helper Functions
 def getCoordinatesAndArea(box, startFactor, endFactor) -> tuple[int, int, int, int]:
     x1, y1, x2, y2 = box.xyxy[0]
     cset = np.array([[int(x1 * startFactor), int(y1 * startFactor)], [int(x2 * endFactor), int(y2 * endFactor)]])
@@ -137,7 +115,7 @@ def calculateDifferential(error, prevError, frameRate, proportionality) -> float
 
 
 
-fps = 5
+fps = 30
 clock1 = pygame.time.Clock()
 # Main Loop
 while True:
@@ -193,6 +171,3 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
-
-servo1.stop()
-GPIO.cleanup()
