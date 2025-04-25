@@ -5,8 +5,8 @@
 ### Progress Checkpoints:
 - [x] Speaker Detection
 - [x] Simulate Laser dot with simple gradient-descent-like algorithm
-- [ ] Implement PID in laser dot
-- [ ] Calibrate for distance based on height of speaker's detected model
-- [ ] To be Decided: Make detected dot follow the speaker
-- [ ] Simulate spotlight using golden circle
-- [ ] Increase Modularity of code
+- [x] Implement PID in laser dot
+- [x] Calibrate for distance based on height of speaker's detected model
+- [x] To be Decided: Make detected dot follow the speaker
+- [x] Simulate spotlight using golden circle
+- [x] Increase Modularity of code
